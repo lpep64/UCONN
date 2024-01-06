@@ -1,0 +1,21 @@
+(define (pell n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (* 2 (pell (- n 1))) (pell (- n 2))))))
+
+(define (find-pell n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (n)))
+        
+(define (comp-pell n)
+  (cond ((= n 0) 2)
+        ((= n 1) 2)
+        (else (+ (* 2 (comp-pell (- n 1))) (comp-pell (- n 2))))))
+
+(define (sqrt-2-approx n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (/ (* 1.0 (comp-pell n)) (pell n)))))
+
+

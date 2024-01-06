@@ -1,0 +1,19 @@
+"Problem 1"
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+
+(define (harmonic n)
+  (sum
+   (lambda (x) (/ 1 x)) 1
+   (lambda (y) (+ 1 Y)) n))
+
+"Problem 2"
+"a."
+(define (product term a next b)
+    (if (> a b) 1
+        (* (term a)
+           (product term (next a) next b))))
+"b."
