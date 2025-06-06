@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <ImageView
+        android:contentDescription="@string/YellowRobot"
+        android:id="@+id/yellow_robot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        app:srcCompat="@drawable/king_of_detroit_robot_yellow_large" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <ImageView
+            android:contentDescription="@string/RedRobot"
+            android:id="@+id/red_robot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/king_of_detroit_robot_red_large" />
+
+        <ImageView
+            android:contentDescription="@string/WhiteRobot"
+            android:id="@+id/white_robot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/king_of_detroit_robot_white_large" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/robotText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/x_robot_s_turn"
+        android:textAlignment="center"
+        android:textSize="30sp" />
+
+    <Button
+        android:layout_marginTop="20dp"
+        android:layout_marginStart="60dp"
+        android:id="@+id/purchase_button"
+        android:layout_width="110dp"
+        android:layout_height="wrap_content"
+        android:text="@string/purchase_button_text"/>
+
+    <!-- <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:orientation="horizontal"
+         android:layout_marginTop="25dp"
+         android:gravity="center">
+
+         <ImageButton
+             android:contentDescription="@string/rot_clock"
+             android:id="@+id/rot_clockwise"
+             android:background="@drawable/button_shape"
+             app:srcCompat="@drawable/rot_clockwise"
+             android:layout_marginEnd="25dp"
+             android:layout_width="50dp"
+             android:layout_height="50dp"/>
+
+         <ImageButton
+             android:contentDescription="@string/rot_counter"
+             android:id="@+id/rot_counter"
+             android:background="@drawable/button_shape"
+             app:srcCompat="@drawable/rot_counter"
+             android:layout_marginStart="25dp"
+             android:layout_width="50dp"
+             android:layout_height="50dp"/>
+     </LinearLayout>-->
+</LinearLayout>
