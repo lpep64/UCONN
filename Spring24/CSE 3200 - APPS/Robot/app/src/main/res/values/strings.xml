@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Robot</string>
+    <string name="YellowRobot">Yellow Robot Image</string>
+    <string name="RedRobot">Red Robot Image\n</string>
+    <string name="WhiteRobot">White Robot Image</string>
+    <string name="rot_clock">Rotation Clockwise Image</string>
+    <string name="rot_counter">Counter-Clockwise Rotation Image</string>
+</resources>

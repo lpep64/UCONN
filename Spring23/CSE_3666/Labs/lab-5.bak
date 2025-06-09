@@ -1,6 +1,0 @@
-"Problem 1"
-(define (c->p p)
-  (cons (sqrt (+ (* (car p) (car p))
-                 (* (cdr (car p)) (cdr (car p)))))
-        (atan (/ (cdr (car p)) (car P)))
-        ))

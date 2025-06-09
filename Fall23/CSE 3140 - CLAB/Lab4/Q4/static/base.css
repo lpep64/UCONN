@@ -1,0 +1,28 @@
+html {
+	height: 100%;
+	width: 100%;
+}
+
+
+body {
+	height:100%;
+	width: 100%;
+	background-color:#300A24;
+	display: grid;
+	align-items: top;
+	justify-items:center;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+#mainHandler{
+	width: fit-content;
+	height: fit-content;
+	display:grid;
+	justify-items: center;
+	align-items: center;
+	border-radius:7px;
+	background-color: #054D79;
+	color:darkgoldenrod;
+}

@@ -1,7 +1,0 @@
-(define (splice f g)
-  (if (< x 0) (f x)
-      (if (and (<= 0 x) (<= x 1))
-               (+ 1
-                  (* -1 (+ (* (- (* 3 (expt x 2)) (* 2 (expt x 3))) (f x))))
-                  (* (- (* 3 (expt x 2)) (* 2 (expt x 3))) (g x)))
-               (if (> x 1) (g x)))))

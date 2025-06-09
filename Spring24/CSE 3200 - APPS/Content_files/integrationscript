@@ -1,0 +1,287 @@
+/*
+ * Copyright (C) 2019, Blackboard Inc.
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  -- Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *  -- Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ *  -- Neither the name of Blackboard Inc. nor the names of its contributors
+ *     may be used to endorse or promote products derived from this
+ *     software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY BLACKBOARD INC ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL BLACKBOARD INC. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+// Verify that we're in the integration iframe
+if (!window.parent) {
+  throw new Error('Not within iframe');
+}
+
+const integrationHost = `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+const shouldShowPanel = false;
+
+let messageChannel;
+let panelId;
+let sessionTimeout;
+let peekPanleTitle;
+let ultraDefalutInstitution;
+const channel = 'ULTRA';
+const Http = new XMLHttpRequest();
+//const url = 'https://empicypfz5.execute-api.us-east-1.amazonaws.com/prod/api/v1/bbbot/config/2054';
+const instituteID = window.__institutionId;
+const url = 'https://vpr338q8wd.execute-api.us-east-1.amazonaws.com/prod/api/v1/bbbot/config/ultra/' + instituteID;
+Http.open("GET", url);
+Http.send();
+
+Http.onload = (e) => {
+  // console.log(JSON.parse(Http.response))
+  peekPanleTitle = JSON.parse(Http.response).botTitle;
+  sessionTimeout = JSON.parse(Http.response).sessionTimeout;
+  ultraDefalutInstitution = JSON.parse(Http.response).shortName;
+}
+
+var refreshId = setInterval(function () {
+  var currentTime = new Date().getTime();
+  var expireInTime = Number(window.__iat) + (116 * 60);
+  var expireOutTime = Number(window.__iat) + (118 * 60);
+  if (currentTime / 1000 >= expireInTime && currentTime / 1000 < expireOutTime) {
+    // console.log("inside Refresh")
+    getAccessToken().then(data => console.log(data));
+  }
+}, 60000);
+async function getAccessToken() {
+  let response = await fetch(`https://chatbot.foundations.blackboard.com/ultra/refreshtoken?channeltype=ULTRA`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': window.__accessToken
+    }
+  });
+  let data = await response.json();
+  if (data.isTokenRefreshed) {
+    window.__accessToken = data.refreshToken;
+    window.__iat = data.iat;
+    window.sessionStorage.setItem("ultraEvent", JSON.stringify({ user: {}, instName: ultraDefalutInstitution, fullName: "", channelType: channel, category: "Admin", lmshost: window.__lmsHost, token: window.__accessToken }));
+  }
+  return data;
+}
+
+// Set up the window.postMessage listener for the integration handshake (for step #2)
+window.addEventListener("message", onPostMessageReceived, false);
+
+// (1) Send the integration handshake message to Learn Ultra. This notifies Learn Ultra that the integration has
+// loaded and is ready to communicate.
+window.parent.postMessage({ "type": "integration:hello" }, `${window.__lmsHost}/*`);
+
+function onPostMessageReceived(evt) {
+  // Do some basic message validation.
+  const fromTrustedHost = evt.origin === window.__lmsHost || evt.origin === integrationHost;
+  if (!fromTrustedHost || !evt.data || !evt.data.type) {
+    return;
+  }
+
+  // (2) A majority of the communication between the integration and Learn Ultra will be over a "secure" MessageChannel.
+  // As response to the integration handshake, Learn Ultra will send a MessageChannel port to the integration.
+  if (evt.data.type === 'integration:hello') {
+    // Store the MessageChannel port for future use
+    messageChannel = new LoggedMessageChannel(evt.ports[0]);
+    messageChannel.onmessage = onMessageFromUltra;
+
+    // (3) Now, we need to authorize with Learn Ultra using the OAuth2 token that the server negotiated for us
+    messageChannel.postMessage({
+      type: 'authorization:authorize',
+
+      // This token is passed in through integration.ejs
+      token: window.__token,
+    });
+  }
+}
+
+function onMessageFromUltra(message) {
+  // (4) If our authorization token was valid, Learn Ultra will send us a response, notifying us that the authorization
+  // was successful
+  if (message.data.type === 'authorization:authorize') {
+    onAuthorizedWithUltra();
+  }
+
+  // (7) On click, route, and hover messages, we will receive an event:event event
+  if (message.data.type === 'event:event') {
+    // From here, you can do something with those events...
+    if (message.data.eventType === 'help:request') {
+      messageChannel.postMessage({
+        type: 'portal:panel',
+        correlationId: 'panel-1',
+        panelType: 'small',
+        panelTitle: peekPanleTitle,
+        attributes: {
+          onClose: {
+            callbackId: 'panel-1-close',
+          },
+        },
+      });
+      messageChannel.postMessage({
+        "type": "help:request:response",
+        "correlationId": message.data.correlationId
+      });
+    }
+    //Get a lastVisitTime by closing the peeekpanel
+    if (message.data.analyticsId === 'components.directives.integration.integrationPanel.closeButton'
+      || message.data.analyticsId === "components.directives.integration.integrationPanel.overlay'") {
+      window.sessionStorage.setItem("lastVisitTime", Number(new Date().getTime()));
+    }
+    //Capture the signout to clear the sessiondata
+    if (message.data.eventType === 'route' && message.data.routeName === 'logout') {
+      window.sessionStorage.clear();
+    }
+  }
+
+  // (9) Once Ultra has opened the panel, it will notify us that we can render into the panel
+  if (message.data.type === 'portal:panel:response') {
+    window.sessionStorage.setItem("ultraEvent", JSON.stringify({ user: {}, instName: window.__shortName, instId: window.__institutionId, fullName: "", channelType: "ULTRA", lmshost: window.__lmsHost, token: window.__accessToken }));
+    //Checking for the chat session data retain based upon the ultra sesson timeout
+    if (window.sessionStorage.getItem("lastVisitTime") != null) {
+      var lastVisitTime = Number(sessionStorage.getItem("lastVisitTime"));
+      var currentTime = new Date().getTime();
+      // console.log("Ultra session timeout: " + sessionTimeout);
+      // console.log("Istimeout: " + currentTime >= lastVisitTime + this.sessionTimeout * 1000 * 60);
+      if (currentTime >= lastVisitTime + sessionTimeout * 1000 * 60) {
+        window.sessionStorage.setItem("isTimeOut", "true");
+        window.sessionStorage.removeItem("lastVisitTime");
+      }
+    }
+    else {
+      window.sessionStorage.setItem("isTimeOut", "false");
+    }
+    renderPanelContents(message);
+  }
+
+  // (10) When the help button has been clicked, we'll use the registered help provider
+  if (message.data.type === 'help:request') {
+    sendMessage({
+      "type": "help:request:response",
+      "correlationId": msg.data.correlationId
+    });
+  }
+}
+
+function onAuthorizedWithUltra() {
+  // console.log('Authorization was successful');
+
+  // (5) Once we are authorized, we can subscribe to events, such as telemetry events
+  messageChannel.postMessage({
+    type: 'event:subscribe',
+    subscriptions: ['click', 'route'],
+  });
+
+  // (6) We can also register a help provider, such as a primary help provider that will overwrite the existing provider
+  messageChannel.postMessage({
+    type: 'help:register',
+    id: 'bbchat-help-learn-provider',
+    displayName: 'Chat Support',
+    iconUrl: 'https://chatbot.foundations.blackboard.com/assets/chat-icon.svg',
+    providerType: 'auxiliary'
+  });
+}
+
+function isSafariBrowser() {
+  let userAgentString = navigator.userAgent;
+  let isChromeAgent = userAgentString.indexOf('Chrome') > -1;
+  let isSafariAgent = userAgentString.indexOf('Safari') > -1;
+
+  if (!isChromeAgent && isSafariAgent) {
+    return true;
+  }
+  return false;
+}
+
+function renderPanelContents(message) {
+  let defaultIframeStyle = { flex: '1 1 auto', margin: '-1.875rem' };
+  let safariIframeStyle = { position: 'fixed', bottom: '0px', width: '100%', height: '100%', marginLeft: '-1.875rem' };
+
+  // (9) Notify Ultra to render our contents into the panel
+  if (message.data.correlationId === 'panel-1') {
+    panelId = message.data.portalId;
+    messageChannel.postMessage({
+      type: 'portal:render',
+      portalId: message.data.portalId,
+      contents: {
+        tag: 'span',
+        props: {
+          style: {
+            display: 'flex',
+            height: '100%',
+            width: '100%',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            justifyContent: 'stretch',
+          },
+        },
+        children: [{
+          tag: 'iframe',
+          props: {
+            id: 'botiframe',
+            style: isSafariBrowser() ? safariIframeStyle : defaultIframeStyle,
+            src: 'https://chatbot.foundations.blackboard.com'
+          },
+        }]
+      },
+    });
+  }
+}
+
+// Sets up a way to communicate between the iframe and the integration script
+// window.addEventListener('storage', onEventFromIframe);
+// function onEventFromIframe(evt) {
+//   if (evt.key !== 'event') {
+//     return;
+//   }
+//
+//   const message = JSON.parse(evt.newValue);
+//   switch (message.type) {
+//     // Handles when the user clicks the "close panel" button
+//     case 'demo:closePanel':
+//       messageChannel.postMessage({
+//         type: 'portal:panel:close',
+//         id: panelId,
+//       });
+//       break;
+//   }
+// }
+
+/**
+ * A MessageChannel-compatible API, but with console logging.
+ */
+class LoggedMessageChannel {
+  onmessage = () => { /* */
+  };
+
+  constructor(messageChannel) {
+    this.messageChannel = messageChannel;
+    this.messageChannel.onmessage = this.onMessage;
+  }
+
+  onMessage = (evt) => {
+    // console.log(`[UEF] From Learn Ultra:`, evt.data);
+    this.onmessage(evt);
+  };
+
+  postMessage = (msg) => {
+    // console.log(`[UEF] To Learn Ultra`, msg);
+    this.messageChannel.postMessage(msg);
+  }
+}
